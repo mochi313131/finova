@@ -1,0 +1,3035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FINOVA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #05070d; min-height: 100vh; }
+  #fv-loading { color: #93A2BC; font-family: sans-serif; text-align: center; padding-top: 35vh; padding-left: 24px; padding-right: 24px; line-height: 1.6; }
+  #fv-loading b { color: #F4F8FB; }
+</style>
+</head>
+<body>
+<div id="root"><div id="fv-loading">Loading FINOVA…</div></div>
+<script>
+window.addEventListener("load", function () {
+  if (typeof React === "undefined" || typeof ReactDOM === "undefined") {
+    document.getElementById("root").innerHTML =
+      '<div id="fv-loading"><b>Could not load FINOVA.</b><br/><br/>This page needs an internet connection the first time it opens (it loads React from cdnjs.cloudflare.com). ' +
+      'If you have internet and still see this, your network may be blocking cdnjs.cloudflare.com — try a different network (e.g. mobile data), or open this file in a different browser.</div>';
+  }
+});
+</script>
+<script>
+/* ------------------------------------------------------------------ */
+/*  FINOVA — a student budgeting app (STANDALONE build)                */
+/*  This version has zero external UI dependencies beyond React —      */
+/*  icons and charts are hand-built below so the file works by just    */
+/*  double-clicking it, no bundler required.                           */
+/* ------------------------------------------------------------------ */
+
+const {
+  useState,
+  useMemo
+} = React;
+
+/* ---------------------------- icon set -------------------------------
+   A small hand-drawn line-icon set (24x24, stroke-based) standing in
+   for lucide-react so this file has no npm/CDN icon dependency. */
+const ICONS = {
+  Bell: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M6 8a6 6 0 1 1 12 0c0 6 2 8 2 9H4s2-3 2-9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M10 21a2 2 0 0 0 4 0"
+  })),
+  User: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "8",
+    r: "4"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M4 21c0-4.5 3.6-8 8-8s8 3.5 8 8"
+  })),
+  Plus: /*#__PURE__*/React.createElement("path", {
+    d: "M12 5v14M5 12h14"
+  }),
+  Home: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M4 11L12 4l8 7"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M6 9.5V20h12V9.5"
+  })),
+  PieChart: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 3v9h9"
+  })),
+  Target: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "8.5"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "4.5"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "1",
+    fill: "currentColor"
+  })),
+  Settings: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"
+  })),
+  ArrowUp: /*#__PURE__*/React.createElement("path", {
+    d: "M12 19V5M5 12l7-7 7 7"
+  }),
+  ArrowDown: /*#__PURE__*/React.createElement("path", {
+    d: "M12 5v14M19 12l-7 7-7-7"
+  }),
+  ArrowLeft: /*#__PURE__*/React.createElement("path", {
+    d: "M19 12H5M12 5l-7 7 7 7"
+  }),
+  Utensils: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M7 2v8a2 2 0 0 0 4 0V2M9 2v20"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M17 2c-1.7 0-3 2-3 5.5S15.3 13 17 13v9"
+  })),
+  Bus: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "6",
+    width: "18",
+    height: "10",
+    rx: "2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 12h18"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "7.5",
+    cy: "18.5",
+    r: "1.5"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "16.5",
+    cy: "18.5",
+    r: "1.5"
+  })),
+  GraduationCap: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M2 9l10-5 10 5-10 5-10-5z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M6 11.5v4.5c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.5"
+  })),
+  Building2: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+    x: "4",
+    y: "3",
+    width: "16",
+    height: "18"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"
+  })),
+  Popcorn: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M5.5 8h13l-1.6 12.5h-9.8z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8.5 8V7a1.9 1.9 0 1 1 3.8 0v1M11.7 8V6.7a1.9 1.9 0 1 1 3.8 0V8"
+  })),
+  ShoppingBag: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M6 8h12l-1 12H7z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M9 8V6a3 3 0 0 1 6 0v2"
+  })),
+  Coffee: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M4 9h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M17 9.5h1.5a2.3 2.3 0 0 1 0 4.5H17"
+  })),
+  Smartphone: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+    x: "7",
+    y: "2",
+    width: "10",
+    height: "20",
+    rx: "2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M11 18h2"
+  })),
+  MoreHorizontal: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
+    cx: "5",
+    cy: "12",
+    r: "1.4",
+    fill: "currentColor"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "1.4",
+    fill: "currentColor"
+  }), /*#__PURE__*/React.createElement("circle", {
+    cx: "19",
+    cy: "12",
+    r: "1.4",
+    fill: "currentColor"
+  })),
+  Wallet: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M3 7h15a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 7V5.5A1.5 1.5 0 0 1 4.5 4H16v3"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16 12.5h3"
+  })),
+  Sparkles: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7z"
+  })),
+  Calendar: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "5",
+    width: "18",
+    height: "16",
+    rx: "2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M3 10h18M8 3v4M16 3v4"
+  })),
+  ChevronRight: /*#__PURE__*/React.createElement("path", {
+    d: "M9 6l6 6-6 6"
+  }),
+  ChevronLeft: /*#__PURE__*/React.createElement("path", {
+    d: "M15 6l-6 6 6 6"
+  }),
+  X: /*#__PURE__*/React.createElement("path", {
+    d: "M6 6l12 12M18 6l-12 12"
+  }),
+  AlertTriangle: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M12 3.5L21.5 20h-19z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 10v4M12 17h.01"
+  })),
+  Briefcase: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "7",
+    width: "18",
+    height: "13",
+    rx: "2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"
+  })),
+  Gift: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "8",
+    width: "18",
+    height: "4"
+  }), /*#__PURE__*/React.createElement("rect", {
+    x: "4",
+    y: "12",
+    width: "16",
+    height: "9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 8v13"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 8C9.5 8 8 6.8 8 5.3S9.3 3 10.5 3C12 3 12 6 12 8zM12 8c2.5 0 4-1.2 4-2.7S14.7 3 13.5 3C12 3 12 6 12 8z"
+  })),
+  IndianRupee: /*#__PURE__*/React.createElement("path", {
+    d: "M6 3h12M6 8h12M6 3c4.5 0 8 1.8 8 5s-3.5 5-8 5h9M6 13l8 8"
+  }),
+  CheckCircle2: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8 12.5l2.5 2.5L16 9"
+  })),
+  Pencil: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M12.5 19.5H21"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M16.3 3.8a2.1 2.1 0 0 1 3 3L7.5 18.6l-4 1 1-4z"
+  })),
+  ShieldCheck: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+    d: "M12 2.5l8 3.3v5.7c0 5-3.4 8-8 10-4.6-2-8-5-8-10V5.8z"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8.7 12l2.3 2.3 4.3-4.6"
+  })),
+  Info: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
+    cx: "12",
+    cy: "12",
+    r: "9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 8h.01"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M11 12h1v5"
+  })),
+  Laptop: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+    x: "3.5",
+    y: "4.5",
+    width: "17",
+    height: "11",
+    rx: "1.2"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M2 18.5h20"
+  })),
+  Plane: /*#__PURE__*/React.createElement("path", {
+    d: "M22 3L2 10.5l7 2.7 2.7 7L22 3zM11.7 13.2L9 21"
+  }),
+  Bookmark: /*#__PURE__*/React.createElement("path", {
+    d: "M6 3h12v18l-6-4.2L6 21z"
+  })
+};
+function Icon({
+  name,
+  size = 18,
+  color = "currentColor",
+  strokeWidth = 2,
+  style
+}) {
+  return /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: color,
+    strokeWidth: strokeWidth,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: style
+  }, ICONS[name] || null);
+}
+
+/* --------------------------- mini charts -------------------------------
+   Hand-built replacements for recharts, so the file has no chart-library
+   dependency either. */
+function MiniBarChart({
+  data,
+  color = "#5FE3C9"
+}) {
+  const max = Math.max(1, ...data.map(d => d.amount));
+  if (data.length === 0) return /*#__PURE__*/React.createElement("div", {
+    className: "fv-empty"
+  }, "No data yet.");
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-end",
+      gap: 10,
+      height: 150,
+      padding: "4px 2px"
+    }
+  }, data.map((d, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      flex: 1,
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-end",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "var(--text-dim)"
+    }
+  }, fmt(d.amount)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "100%",
+      height: Math.max(4, d.amount / max * 92),
+      background: `linear-gradient(180deg, ${color}, #26B7A0)`,
+      borderRadius: "6px 6px 0 0"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-dim)"
+    }
+  }, d.name))));
+}
+function MiniLineChart({
+  data,
+  color = "#7FE9D0"
+}) {
+  if (data.length === 0) return /*#__PURE__*/React.createElement("div", {
+    className: "fv-empty"
+  }, "No data yet.");
+  const w = 300,
+    h = 100,
+    pad = 8;
+  const max = Math.max(1, ...data.map(d => d.amount));
+  const min = Math.min(0, ...data.map(d => d.amount));
+  const pt = (d, i) => {
+    const x = data.length > 1 ? pad + i / (data.length - 1) * (w - pad * 2) : w / 2;
+    const y = h - pad - (d.amount - min) / (max - min || 1) * (h - pad * 2);
+    return [x, y];
+  };
+  const points = data.map((d, i) => pt(d, i).join(",")).join(" ");
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("svg", {
+    viewBox: `0 0 ${w} ${h}`,
+    width: "100%",
+    height: "120",
+    preserveAspectRatio: "none"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: points,
+    fill: "none",
+    stroke: color,
+    strokeWidth: "2.5",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }), data.map((d, i) => {
+    const [x, y] = pt(d, i);
+    return /*#__PURE__*/React.createElement("circle", {
+      key: i,
+      cx: x,
+      cy: y,
+      r: "3",
+      fill: color
+    });
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 10,
+      color: "var(--text-dim)",
+      marginTop: 2
+    }
+  }, data.map((d, i) => /*#__PURE__*/React.createElement("span", {
+    key: i
+  }, d.name))));
+}
+function DonutChart({
+  data,
+  size = 130
+}) {
+  const total = data.reduce((a, c) => a + c.amount, 0) || 1;
+  let cum = 0;
+  const stops = data.map(c => {
+    const start = cum / total * 360;
+    cum += c.amount;
+    const end = cum / total * 360;
+    return `${CATEGORY_META[c.category].color} ${start}deg ${end}deg`;
+  });
+  const gradient = stops.length ? stops.join(", ") : "rgba(255,255,255,0.08) 0deg 360deg";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      background: `conic-gradient(${gradient})`,
+      position: "relative",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: size * 0.28,
+      borderRadius: "50%",
+      background: "var(--navy-card)"
+    }
+  }));
+}
+const CATEGORY_META = {
+  Food: {
+    icon: "Utensils",
+    color: "#5FE3C9"
+  },
+  Transport: {
+    icon: "Bus",
+    color: "#7FB8FF"
+  },
+  Education: {
+    icon: "GraduationCap",
+    color: "#C9A6FF"
+  },
+  "Hostel/Rent": {
+    icon: "Building2",
+    color: "#FFB870"
+  },
+  Entertainment: {
+    icon: "Popcorn",
+    color: "#FF9AC1"
+  },
+  Shopping: {
+    icon: "ShoppingBag",
+    color: "#FFD966"
+  },
+  Cafes: {
+    icon: "Coffee",
+    color: "#D9B08C"
+  },
+  "Mobile/Internet": {
+    icon: "Smartphone",
+    color: "#8CE0FF"
+  },
+  Personal: {
+    icon: "User",
+    color: "#B9C6DA"
+  },
+  Other: {
+    icon: "MoreHorizontal",
+    color: "#9AA7BD"
+  }
+};
+const CATEGORY_LIST = Object.keys(CATEGORY_META);
+const GUIDELINE_PCT = {
+  Food: 0.20,
+  Transport: 0.09,
+  Education: 0.14,
+  "Hostel/Rent": 0.22,
+  Entertainment: 0.07,
+  Shopping: 0.07,
+  Cafes: 0.05,
+  "Mobile/Internet": 0.05,
+  Personal: 0.04,
+  Other: 0.04
+};
+const INCOME_SOURCES = [{
+  name: "Pocket Money",
+  icon: "Wallet"
+}, {
+  name: "Allowance",
+  icon: "Gift"
+}, {
+  name: "Part-time Work",
+  icon: "Briefcase"
+}, {
+  name: "Scholarship",
+  icon: "GraduationCap"
+}, {
+  name: "Other",
+  icon: "MoreHorizontal"
+}];
+const GOAL_ICONS = ["Laptop", "Smartphone", "Plane", "ShieldCheck", "GraduationCap", "Bookmark"];
+const fmt = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const prettyDate = iso => {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short"
+  });
+};
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+/* ------------------------------ seed data --------------------------- */
+
+const SEED_EXPENSES = [{
+  id: uid(),
+  title: "Mess Bill",
+  category: "Food",
+  amount: 1200,
+  date: "2026-08-04",
+  note: ""
+}, {
+  id: uid(),
+  title: "Semester Textbooks",
+  category: "Education",
+  amount: 900,
+  date: "2026-08-06",
+  note: ""
+}, {
+  id: uid(),
+  title: "Auto to Campus",
+  category: "Transport",
+  amount: 450,
+  date: "2026-08-09",
+  note: ""
+}, {
+  id: uid(),
+  title: "Movie Night",
+  category: "Entertainment",
+  amount: 500,
+  date: "2026-08-11",
+  note: "with roommates"
+}, {
+  id: uid(),
+  title: "Cafe Hangout",
+  category: "Cafes",
+  amount: 300,
+  date: "2026-08-14",
+  note: ""
+}, {
+  id: uid(),
+  title: "Mobile Recharge",
+  category: "Mobile/Internet",
+  amount: 400,
+  date: "2026-08-16",
+  note: ""
+}, {
+  id: uid(),
+  title: "New Hoodie",
+  category: "Shopping",
+  amount: 700,
+  date: "2026-08-18",
+  note: ""
+}, {
+  id: uid(),
+  title: "Toiletries",
+  category: "Personal",
+  amount: 300,
+  date: "2026-08-20",
+  note: ""
+}];
+const SEED_INCOME = [{
+  id: uid(),
+  source: "Allowance",
+  amount: 8000,
+  date: "2026-08-01",
+  note: "Monthly allowance"
+}, {
+  id: uid(),
+  source: "Part-time Work",
+  amount: 1500,
+  date: "2026-08-12",
+  note: "Tutoring"
+}];
+const SEED_GOALS = [{
+  id: uid(),
+  name: "New Laptop",
+  target: 40000,
+  saved: 12000,
+  date: "2026-12-15",
+  icon: 0
+}, {
+  id: uid(),
+  name: "Goa Trip",
+  target: 15000,
+  saved: 5000,
+  date: "2026-11-01",
+  icon: 2
+}];
+const SEED_BUDGET_PLAN = {
+  Food: 1800,
+  Transport: 700,
+  Education: 1200,
+  "Hostel/Rent": 0,
+  Entertainment: 600,
+  Shopping: 700,
+  Cafes: 400,
+  "Mobile/Internet": 400,
+  Personal: 400,
+  Other: 300
+};
+
+/* ---------------------------- small pieces --------------------------- */
+
+function ProgressBar({
+  pct,
+  tone = "teal",
+  height = 8
+}) {
+  const toneColor = tone === "warn" ? "var(--warn)" : tone === "danger" ? "var(--danger)" : "var(--teal)";
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: "100%",
+      height,
+      borderRadius: 999,
+      background: "rgba(255,255,255,0.08)",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${Math.min(100, Math.max(0, pct))}%`,
+      height: "100%",
+      borderRadius: 999,
+      background: `linear-gradient(90deg, ${toneColor}, var(--mint))`,
+      transition: "width .5s ease"
+    }
+  }));
+}
+function Card({
+  children,
+  style,
+  onClick
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    onClick: onClick,
+    className: onClick ? "fv-card fv-tap" : "fv-card",
+    style: style
+  }, children);
+}
+function ScreenHeader({
+  title,
+  onBack,
+  right
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screenhead"
+  }, onBack ? /*#__PURE__*/React.createElement("button", {
+    className: "fv-iconbtn",
+    onClick: onBack
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "ArrowLeft",
+    size: 18
+  })) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 34
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-screentitle"
+  }, title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 34,
+      display: "flex",
+      justifyContent: "flex-end"
+    }
+  }, right));
+}
+function CategoryIcon({
+  category,
+  size = 18,
+  box = 34
+}) {
+  const meta = CATEGORY_META[category] || CATEGORY_META.Other;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: box,
+      height: box,
+      borderRadius: box * 0.32,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: meta.color + "22",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: meta.icon,
+    size: size,
+    color: meta.color,
+    strokeWidth: 2
+  }));
+}
+function Logo({
+  size = 26
+}) {
+  return /*#__PURE__*/React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 48 48",
+    fill: "none"
+  }, /*#__PURE__*/React.createElement("rect", {
+    width: "48",
+    height: "48",
+    rx: "13",
+    fill: "url(#fv-logo-grad)"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M12 30 L19 22 L25 27 L36 14",
+    stroke: "#0A1628",
+    strokeWidth: "3.4",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    fill: "none"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M29 14 H36 V21",
+    stroke: "#0A1628",
+    strokeWidth: "3.4",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    fill: "none"
+  }), /*#__PURE__*/React.createElement("defs", null, /*#__PURE__*/React.createElement("linearGradient", {
+    id: "fv-logo-grad",
+    x1: "0",
+    y1: "0",
+    x2: "48",
+    y2: "48"
+  }, /*#__PURE__*/React.createElement("stop", {
+    offset: "0",
+    stopColor: "#5FE3C9"
+  }), /*#__PURE__*/React.createElement("stop", {
+    offset: "1",
+    stopColor: "#26B7A0"
+  }))));
+}
+
+/* ------------------------------ bottom nav ---------------------------- */
+
+function BottomNav({
+  screen,
+  go,
+  openAddSheet
+}) {
+  const items = [{
+    key: "home",
+    label: "Home",
+    icon: "Home"
+  }, {
+    key: "analysis",
+    label: "Analysis",
+    icon: "PieChart"
+  }, {
+    key: "__add",
+    label: "Add",
+    icon: "Plus"
+  }, {
+    key: "goals",
+    label: "Goals",
+    icon: "Target"
+  }, {
+    key: "profile",
+    label: "Profile",
+    icon: "Settings"
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-bottomnav"
+  }, items.map(it => {
+    if (it.key === "__add") {
+      return /*#__PURE__*/React.createElement("button", {
+        key: it.key,
+        className: "fv-addbtn",
+        onClick: openAddSheet,
+        "aria-label": "Add"
+      }, /*#__PURE__*/React.createElement(Icon, {
+        name: "Plus",
+        size: 24,
+        color: "#0A1628",
+        strokeWidth: 2.6
+      }));
+    }
+    const active = screen === it.key;
+    return /*#__PURE__*/React.createElement("button", {
+      key: it.key,
+      className: "fv-navitem" + (active ? " active" : ""),
+      onClick: () => go(it.key)
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: it.icon,
+      size: 19,
+      strokeWidth: 2.2
+    }), /*#__PURE__*/React.createElement("span", null, it.label));
+  }));
+}
+
+/* ================================================================= */
+/*  SCREEN: Onboarding                                                 */
+/* ================================================================= */
+
+function OnboardingScreen({
+  onFinish
+}) {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
+  const [income, setIncome] = useState("8000");
+  const [target, setTarget] = useState("1500");
+  const features = [{
+    icon: "Wallet",
+    text: "Track daily expenses without any bank linking"
+  }, {
+    icon: "PieChart",
+    text: "Understand exactly where your money goes"
+  }, {
+    icon: "Sparkles",
+    text: "Get FINOVA's smart budget suggestions"
+  }, {
+    icon: "Target",
+    text: "Set saving goals and watch them grow"
+  }];
+  if (step === 0) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "fv-screen fv-onboard"
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: 18,
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement(Logo, {
+      size: 64
+    }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      className: "fv-brand"
+    }, "FINOVA"), /*#__PURE__*/React.createElement("div", {
+      className: "fv-tagline"
+    }, "Budgeting, built for student life")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 18,
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12
+      }
+    }, features.map((f, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      className: "fv-featurerow"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "fv-featureicon"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: f.icon,
+      size: 17,
+      color: "var(--teal)"
+    })), /*#__PURE__*/React.createElement("span", null, f.text))))), /*#__PURE__*/React.createElement("button", {
+      className: "fv-primarybtn",
+      onClick: () => setStep(1)
+    }, "Get Started ", /*#__PURE__*/React.createElement(Icon, {
+      name: "ChevronRight",
+      size: 18
+    })));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen fv-onboard"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "fv-iconbtn",
+    style: {
+      alignSelf: "flex-start"
+    },
+    onClick: () => setStep(0)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "ArrowLeft",
+    size: 18
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-h1"
+  }, "Let's set you up"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sub"
+  }, "This only takes a moment, and you can change it anytime in Profile.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 16,
+      marginTop: 22
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Your name"), /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "e.g. Diya"
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Monthly allowance / income"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "IndianRupee",
+    size: 15
+  }), /*#__PURE__*/React.createElement("input", {
+    inputMode: "numeric",
+    value: income,
+    onChange: e => setIncome(e.target.value.replace(/[^0-9]/g, "")),
+    placeholder: "8000"
+  }))), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Monthly saving target"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "IndianRupee",
+    size: 15
+  }), /*#__PURE__*/React.createElement("input", {
+    inputMode: "numeric",
+    value: target,
+    onChange: e => setTarget(e.target.value.replace(/[^0-9]/g, "")),
+    placeholder: "1500"
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "fv-primarybtn",
+    onClick: () => onFinish({
+      name: name.trim() || "Student",
+      monthlyIncome: Number(income) || 8000,
+      savingsTarget: Number(target) || 1000
+    })
+  }, "Start Budgeting ", /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 18
+  })));
+}
+
+/* ================================================================= */
+/*  SCREEN: Home                                                       */
+/* ================================================================= */
+
+function HomeScreen({
+  profile,
+  spent,
+  remaining,
+  budget,
+  pctUsed,
+  categoryTotals,
+  transactions,
+  goals,
+  insight,
+  go
+}) {
+  const status = pctUsed < 60 ? {
+    text: "You're on track this month.",
+    tone: "teal"
+  } : pctUsed < 90 ? {
+    text: "Keep an eye on your spending pace.",
+    tone: "warn"
+  } : {
+    text: "You're close to your budget limit.",
+    tone: "danger"
+  };
+  const topCats = [...categoryTotals].sort((a, b) => b.amount - a.amount).slice(0, 6);
+  const recent = transactions.slice(0, 3);
+  const mainGoal = goals[0];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-hometop"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(Logo, {
+    size: 30
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-greeting"
+  }, "Hi, ", profile.name, " 👋"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-month"
+  }, new Date().toLocaleDateString("en-IN", {
+    month: "long",
+    year: "numeric"
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "fv-iconbtn",
+    onClick: () => go("notifications")
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Bell",
+    size: 17
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "fv-iconbtn",
+    onClick: () => go("profile")
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "User",
+    size: 17
+  })))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      background: "linear-gradient(150deg,#123B45,#0E2A38)",
+      border: "1px solid rgba(95,227,201,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-label"
+  }, "Monthly Budget"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-bignum"
+  }, fmt(budget))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-pctbadge"
+  }, Math.round(pctUsed), "%")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      margin: "14px 0 6px"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-label"
+  }, "Spent"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-midnum",
+    style: {
+      color: "var(--warn)"
+    }
+  }, fmt(spent))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-label"
+  }, "Remaining"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-midnum",
+    style: {
+      color: "var(--teal)"
+    }
+  }, fmt(remaining)))), /*#__PURE__*/React.createElement(ProgressBar, {
+    pct: pctUsed,
+    tone: status.tone
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-statusline"
+  }, status.tone === "danger" ? /*#__PURE__*/React.createElement(Icon, {
+    name: "AlertTriangle",
+    size: 13,
+    color: "var(--danger)"
+  }) : /*#__PURE__*/React.createElement(Icon, {
+    name: "CheckCircle2",
+    size: 13,
+    color: "var(--teal)"
+  }), /*#__PURE__*/React.createElement("span", null, status.text))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-quickgrid"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "fv-quickaction",
+    onClick: () => go("addExpense")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-quickicon",
+    style: {
+      background: "#5FE3C922"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "ArrowUp",
+    size: 16,
+    color: "var(--teal)"
+  })), /*#__PURE__*/React.createElement("span", null, "Add Expense")), /*#__PURE__*/React.createElement("button", {
+    className: "fv-quickaction",
+    onClick: () => go("addIncome")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-quickicon",
+    style: {
+      background: "#7FB8FF22"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "ArrowDown",
+    size: 16,
+    color: "#7FB8FF"
+  })), /*#__PURE__*/React.createElement("span", null, "Add Income")), /*#__PURE__*/React.createElement("button", {
+    className: "fv-quickaction",
+    onClick: () => go("budgetPlanner")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-quickicon",
+    style: {
+      background: "#FFD96622"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Wallet",
+    size: 16,
+    color: "#FFD966"
+  })), /*#__PURE__*/React.createElement("span", null, "Set Budget")), /*#__PURE__*/React.createElement("button", {
+    className: "fv-quickaction",
+    onClick: () => go("goals")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-quickicon",
+    style: {
+      background: "#FF9AC122"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Target",
+    size: 16,
+    color: "#FF9AC1"
+  })), /*#__PURE__*/React.createElement("span", null, "Saving Goal"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead"
+  }, /*#__PURE__*/React.createElement("span", null, "Where Your Money Goes"), /*#__PURE__*/React.createElement("button", {
+    className: "fv-linkbtn",
+    onClick: () => go("analysis")
+  }, "See all ", /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 13
+  }))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-catgrid"
+  }, topCats.map(c => /*#__PURE__*/React.createElement("div", {
+    key: c.category,
+    className: "fv-catcell"
+  }, /*#__PURE__*/React.createElement(CategoryIcon, {
+    category: c.category
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-catname"
+  }, c.category), /*#__PURE__*/React.createElement("div", {
+    className: "fv-catamt"
+  }, fmt(c.amount)))))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead"
+  }, /*#__PURE__*/React.createElement("span", null, "Recent Spending"), /*#__PURE__*/React.createElement("button", {
+    className: "fv-linkbtn",
+    onClick: () => go("transactions")
+  }, "See all ", /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 13
+  }))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 6
+    }
+  }, recent.map(t => /*#__PURE__*/React.createElement(TransactionRow, {
+    key: t.id,
+    t: t
+  }))), mainGoal && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead"
+  }, /*#__PURE__*/React.createElement("span", null, "Current Saving Goal"), /*#__PURE__*/React.createElement("button", {
+    className: "fv-linkbtn",
+    onClick: () => go("goals")
+  }, "See all ", /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 13
+  }))), /*#__PURE__*/React.createElement(Card, {
+    onClick: () => go("goals")
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600
+    }
+  }, mainGoal.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "var(--teal)",
+      fontWeight: 600
+    }
+  }, Math.round(mainGoal.saved / mainGoal.target * 100), "%")), /*#__PURE__*/React.createElement(ProgressBar, {
+    pct: mainGoal.saved / mainGoal.target * 100
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-goalsub"
+  }, fmt(mainGoal.saved), " of ", fmt(mainGoal.target), " saved"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead"
+  }, /*#__PURE__*/React.createElement("span", null, "FINOVA Insight")), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      background: "linear-gradient(135deg,#1C2A4A,#152038)",
+      border: "1px solid rgba(127,184,255,0.2)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Sparkles",
+    size: 18,
+    color: "var(--mint)",
+    style: {
+      flexShrink: 0,
+      marginTop: 2
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      lineHeight: 1.5,
+      color: "var(--text-dim)"
+    }
+  }, insight))), /*#__PURE__*/React.createElement(Card, {
+    onClick: () => go("optimize"),
+    style: {
+      marginBottom: 90,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      background: "linear-gradient(135deg, rgba(95,227,201,0.14), rgba(95,227,201,0.04))",
+      border: "1px solid rgba(95,227,201,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-featureicon"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Sparkles",
+    size: 17,
+    color: "var(--teal)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13.5
+    }
+  }, "FINOVA Budget Optimization"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-txmeta"
+  }, "See a smarter way to split your budget")), /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 16,
+    color: "var(--text-dim)"
+  })));
+}
+function TransactionRow({
+  t
+}) {
+  const isIncome = t.type === "income";
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-txrow"
+  }, /*#__PURE__*/React.createElement(CategoryIcon, {
+    category: isIncome ? "Other" : t.category
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-txtitle"
+  }, t.title), /*#__PURE__*/React.createElement("div", {
+    className: "fv-txmeta"
+  }, isIncome ? "Income" : t.category, " · ", prettyDate(t.date))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-txamt",
+    style: {
+      color: isIncome ? "var(--teal)" : "var(--danger)"
+    }
+  }, isIncome ? "+" : "-", fmt(t.amount)));
+}
+
+/* ================================================================= */
+/*  SCREEN: Add Expense / Add Income                                   */
+/* ================================================================= */
+
+function AddExpenseScreen({
+  onBack,
+  onAdd
+}) {
+  const [amount, setAmount] = useState("");
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("Food");
+  const [date, setDate] = useState(todayISO());
+  const [note, setNote] = useState("");
+  const canSave = Number(amount) > 0 && title.trim().length > 0;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Add Expense",
+    onBack: onBack
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-amountentry"
+  }, /*#__PURE__*/React.createElement("span", null, "₹"), /*#__PURE__*/React.createElement("input", {
+    autoFocus: true,
+    inputMode: "decimal",
+    placeholder: "0",
+    value: amount,
+    onChange: e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Expense title"), /*#__PURE__*/React.createElement("input", {
+    value: title,
+    onChange: e => setTitle(e.target.value),
+    placeholder: "e.g. Mess bill"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Category"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-iconpicker"
+  }, CATEGORY_LIST.map(c => {
+    const meta = CATEGORY_META[c];
+    const active = category === c;
+    return /*#__PURE__*/React.createElement("button", {
+      key: c,
+      className: "fv-iconpick" + (active ? " active" : ""),
+      onClick: () => setCategory(c),
+      style: active ? {
+        borderColor: meta.color,
+        background: meta.color + "22"
+      } : {}
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: meta.icon,
+      size: 19,
+      color: active ? meta.color : "var(--text-dim)"
+    }), /*#__PURE__*/React.createElement("span", null, c));
+  }))), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Date"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Calendar",
+    size: 15
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: date,
+    onChange: e => setDate(e.target.value)
+  }))), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Note (optional)"), /*#__PURE__*/React.createElement("input", {
+    value: note,
+    onChange: e => setNote(e.target.value),
+    placeholder: "Add a note"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "fv-primarybtn",
+    disabled: !canSave,
+    onClick: () => canSave && onAdd({
+      amount: Number(amount),
+      title: title.trim(),
+      category,
+      date,
+      note
+    })
+  }, "Add Expense"));
+}
+function AddIncomeScreen({
+  onBack,
+  onAdd
+}) {
+  const [amount, setAmount] = useState("");
+  const [source, setSource] = useState("Allowance");
+  const [date, setDate] = useState(todayISO());
+  const [note, setNote] = useState("");
+  const canSave = Number(amount) > 0;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Add Income",
+    onBack: onBack
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-amountentry",
+    style: {
+      color: "var(--teal)"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "₹"), /*#__PURE__*/React.createElement("input", {
+    autoFocus: true,
+    inputMode: "decimal",
+    placeholder: "0",
+    value: amount,
+    onChange: e => setAmount(e.target.value.replace(/[^0-9.]/g, ""))
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Source"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-chiprow"
+  }, INCOME_SOURCES.map(s => /*#__PURE__*/React.createElement("button", {
+    key: s.name,
+    className: "fv-chip" + (source === s.name ? " active" : ""),
+    onClick: () => setSource(s.name)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: s.icon,
+    size: 14
+  }), " ", s.name)))), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Date"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Calendar",
+    size: 15
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: date,
+    onChange: e => setDate(e.target.value)
+  }))), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Note (optional)"), /*#__PURE__*/React.createElement("input", {
+    value: note,
+    onChange: e => setNote(e.target.value),
+    placeholder: "Add a note"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "fv-primarybtn",
+    disabled: !canSave,
+    onClick: () => canSave && onAdd({
+      amount: Number(amount),
+      source,
+      date,
+      note
+    })
+  }, "Add Income"));
+}
+
+/* ================================================================= */
+/*  SCREEN: Budget Planner                                             */
+/* ================================================================= */
+
+function BudgetPlannerScreen({
+  onBack,
+  profile,
+  setProfile,
+  budgetPlan,
+  setBudgetPlan
+}) {
+  const [income, setIncome] = useState(String(profile.monthlyIncome));
+  const [savings, setSavings] = useState(String(profile.savingsTarget));
+  const [plan, setPlan] = useState({
+    ...budgetPlan
+  });
+  const planCats = ["Food", "Transport", "Education", "Entertainment", "Shopping", "Other"];
+  const totalPlanned = Object.values(plan).reduce((a, b) => a + (Number(b) || 0), 0) + (Number(savings) || 0);
+  const remaining = (Number(income) || 0) - totalPlanned;
+  const over = remaining < 0;
+  const save = () => {
+    setProfile(p => ({
+      ...p,
+      monthlyIncome: Number(income) || p.monthlyIncome,
+      savingsTarget: Number(savings) || p.savingsTarget
+    }));
+    setBudgetPlan({
+      ...plan
+    });
+    onBack();
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Budget Planner",
+    onBack: onBack
+  }), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Monthly income"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "IndianRupee",
+    size: 15
+  }), /*#__PURE__*/React.createElement("input", {
+    inputMode: "numeric",
+    value: income,
+    onChange: e => setIncome(e.target.value.replace(/[^0-9]/g, ""))
+  }))), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Savings target"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "IndianRupee",
+    size: 15
+  }), /*#__PURE__*/React.createElement("input", {
+    inputMode: "numeric",
+    value: savings,
+    onChange: e => setSavings(e.target.value.replace(/[^0-9]/g, ""))
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead",
+    style: {
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Category Budgets")), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, planCats.map(c => /*#__PURE__*/React.createElement("div", {
+    key: c,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement(CategoryIcon, {
+    category: c,
+    box: 30,
+    size: 15
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      fontSize: 13.5
+    }
+  }, c), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap",
+    style: {
+      width: 110
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "IndianRupee",
+    size: 12
+  }), /*#__PURE__*/React.createElement("input", {
+    inputMode: "numeric",
+    value: plan[c] ?? 0,
+    onChange: e => setPlan(p => ({
+      ...p,
+      [c]: Number(e.target.value.replace(/[^0-9]/g, "")) || 0
+    }))
+  }))))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginTop: 14,
+      background: over ? "rgba(255,107,107,0.1)" : "rgba(95,227,201,0.08)",
+      border: over ? "1px solid rgba(255,107,107,0.3)" : "1px solid rgba(95,227,201,0.2)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 13.5
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Total planned"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, fmt(totalPlanned))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 13.5,
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", null, over ? "Over budget by" : "Remaining"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      color: over ? "var(--danger)" : "var(--teal)"
+    }
+  }, fmt(Math.abs(remaining)))), over && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 10,
+      fontSize: 12.5,
+      color: "var(--danger)"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "AlertTriangle",
+    size: 14,
+    style: {
+      flexShrink: 0,
+      marginTop: 1
+    }
+  }), /*#__PURE__*/React.createElement("span", null, "Your planned spending is more than your available money. Consider trimming a category above."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "fv-primarybtn",
+    style: {
+      marginBottom: 90
+    },
+    onClick: save
+  }, "Save Budget Plan"));
+}
+
+/* ================================================================= */
+/*  SCREEN: Spending Analysis                                          */
+/* ================================================================= */
+
+function SpendingAnalysisScreen({
+  onBack,
+  expenses,
+  categoryTotals,
+  spent,
+  budget,
+  goOptimize
+}) {
+  const weekly = useMemo(() => {
+    const buckets = {};
+    expenses.forEach(e => {
+      const d = new Date(e.date + "T00:00:00");
+      const weekNum = Math.ceil(d.getDate() / 7);
+      const key = "Week " + weekNum;
+      buckets[key] = (buckets[key] || 0) + e.amount;
+    });
+    return Object.entries(buckets).sort().map(([name, amount]) => ({
+      name,
+      amount
+    }));
+  }, [expenses]);
+  const avgDaily = spent / 30;
+  const highest = [...categoryTotals].sort((a, b) => b.amount - a.amount)[0];
+  const pieData = categoryTotals.filter(c => c.amount > 0);
+  const overspendCats = categoryTotals.filter(c => c.amount > (GUIDELINE_PCT[c.category] || 0.05) * budget * 1.15);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Spending Analysis",
+    onBack: onBack
+  }), /*#__PURE__*/React.createElement(Card, {
+    onClick: goOptimize,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      background: "linear-gradient(135deg, rgba(95,227,201,0.14), rgba(95,227,201,0.04))",
+      border: "1px solid rgba(95,227,201,0.3)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-featureicon"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Sparkles",
+    size: 17,
+    color: "var(--teal)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13.5
+    }
+  }, "See Budget Optimization"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-txmeta"
+  }, "FINOVA's suggested category split")), /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 16,
+    color: "var(--text-dim)"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fv-statgrid"
+  }, /*#__PURE__*/React.createElement(Card, {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-label"
+  }, "Avg. Daily Spend"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-midnum"
+  }, fmt(avgDaily))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-label"
+  }, "Highest Category"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-midnum",
+    style: {
+      fontSize: 15
+    }
+  }, highest ? highest.category : "—"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead"
+  }, /*#__PURE__*/React.createElement("span", null, "Weekly Spending")), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(MiniBarChart, {
+    data: weekly
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead"
+  }, /*#__PURE__*/React.createElement("span", null, "Category Breakdown")), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement(DonutChart, {
+    data: pieData,
+    size: 130
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      gap: 7
+    }
+  }, pieData.sort((a, b) => b.amount - a.amount).slice(0, 5).map(c => /*#__PURE__*/React.createElement("div", {
+    key: c.category,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      background: CATEGORY_META[c.category].color
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      color: "var(--text-dim)"
+    }
+  }, c.category), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, fmt(c.amount))))))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead"
+  }, /*#__PURE__*/React.createElement("span", null, "Spending Trend")), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(MiniLineChart, {
+    data: weekly
+  })), overspendCats.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead"
+  }, /*#__PURE__*/React.createElement("span", null, "Overspending Warnings")), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginBottom: 90,
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, overspendCats.map(c => /*#__PURE__*/React.createElement("div", {
+    key: c.category,
+    style: {
+      display: "flex",
+      gap: 8,
+      fontSize: 12.5
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "AlertTriangle",
+    size: 15,
+    color: "var(--warn)",
+    style: {
+      flexShrink: 0,
+      marginTop: 1
+    }
+  }), /*#__PURE__*/React.createElement("span", null, "Your ", /*#__PURE__*/React.createElement("strong", null, c.category), " spending (", fmt(c.amount), ") is above its usual guideline this month."))))), overspendCats.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 90
+    }
+  }));
+}
+
+/* ================================================================= */
+/*  SCREEN: Recent Transactions                                        */
+/* ================================================================= */
+
+function TransactionsScreen({
+  onBack,
+  transactions
+}) {
+  const [filter, setFilter] = useState("All");
+  const filtered = filter === "All" ? transactions : filter === "Income" ? transactions.filter(t => t.type === "income") : transactions.filter(t => t.type === "expense");
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Recent Transactions",
+    onBack: onBack
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-chiprow",
+    style: {
+      marginBottom: 4
+    }
+  }, ["All", "Income", "Expense"].map(f => /*#__PURE__*/React.createElement("button", {
+    key: f,
+    className: "fv-chip" + (filter === f ? " active" : ""),
+    onClick: () => setFilter(f)
+  }, f))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 6,
+      marginBottom: 90
+    }
+  }, filtered.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "fv-empty"
+  }, "No transactions yet."), filtered.map(t => /*#__PURE__*/React.createElement(TransactionRow, {
+    key: t.id,
+    t: t
+  }))));
+}
+
+/* ================================================================= */
+/*  SCREEN: Saving Goals                                               */
+/* ================================================================= */
+
+function SavingGoalsScreen({
+  onBack,
+  goals,
+  setGoals,
+  savingsTarget
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState("");
+  const [target, setTarget] = useState("");
+  const [date, setDate] = useState("");
+  const addGoal = () => {
+    if (!name.trim() || !Number(target)) return;
+    setGoals(g => [...g, {
+      id: uid(),
+      name: name.trim(),
+      target: Number(target),
+      saved: 0,
+      date: date || todayISO(),
+      icon: g.length % GOAL_ICONS.length
+    }]);
+    setName("");
+    setTarget("");
+    setDate("");
+    setShowForm(false);
+  };
+  const bump = (id, delta) => {
+    setGoals(g => g.map(goal => goal.id === id ? {
+      ...goal,
+      saved: Math.max(0, Math.min(goal.target, goal.saved + delta))
+    } : goal));
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Saving Goals",
+    onBack: onBack,
+    right: /*#__PURE__*/React.createElement("button", {
+      className: "fv-iconbtn",
+      onClick: () => setShowForm(s => !s)
+    }, showForm ? /*#__PURE__*/React.createElement(Icon, {
+      name: "X",
+      size: 17
+    }) : /*#__PURE__*/React.createElement(Icon, {
+      name: "Plus",
+      size: 17
+    }))
+  }), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      background: "linear-gradient(135deg,#1C2A4A,#152038)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-label"
+  }, "Monthly Saving Target"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-midnum",
+    style: {
+      color: "var(--teal)"
+    }
+  }, fmt(savingsTarget))), showForm && /*#__PURE__*/React.createElement(Card, {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Goal name"), /*#__PURE__*/React.createElement("input", {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "e.g. New Laptop"
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Target amount"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "IndianRupee",
+    size: 14
+  }), /*#__PURE__*/React.createElement("input", {
+    inputMode: "numeric",
+    value: target,
+    onChange: e => setTarget(e.target.value.replace(/[^0-9]/g, "")),
+    placeholder: "40000"
+  }))), /*#__PURE__*/React.createElement("label", {
+    className: "fv-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Target date"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Calendar",
+    size: 14
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: date,
+    onChange: e => setDate(e.target.value)
+  }))), /*#__PURE__*/React.createElement("button", {
+    className: "fv-primarybtn",
+    onClick: addGoal
+  }, "Create Goal")), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead",
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Your Goals")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      marginBottom: 90
+    }
+  }, goals.map(g => {
+    const goalIconName = GOAL_ICONS[g.icon % GOAL_ICONS.length];
+    const pct = Math.min(100, g.saved / g.target * 100);
+    const remaining = g.target - g.saved;
+    return /*#__PURE__*/React.createElement(Card, {
+      key: g.id
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10,
+        alignItems: "center",
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "fv-featureicon",
+      style: {
+        width: 38,
+        height: 38
+      }
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: goalIconName,
+      size: 18,
+      color: "var(--teal)"
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 600
+      }
+    }, g.name), /*#__PURE__*/React.createElement("div", {
+      className: "fv-txmeta"
+    }, "Target: ", prettyDate(g.date))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 700,
+        color: "var(--teal)"
+      }
+    }, Math.round(pct), "%")), /*#__PURE__*/React.createElement(ProgressBar, {
+      pct: pct
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginTop: 8,
+        fontSize: 12
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "fv-goalsub"
+    }, fmt(g.saved), " saved"), /*#__PURE__*/React.createElement("span", {
+      className: "fv-goalsub"
+    }, fmt(remaining), " to go")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        marginTop: 10
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "fv-smallbtn",
+      onClick: () => bump(g.id, 500)
+    }, "+ ₹500"), /*#__PURE__*/React.createElement("button", {
+      className: "fv-smallbtn",
+      onClick: () => bump(g.id, 1000)
+    }, "+ ₹1000")));
+  })));
+}
+
+/* ================================================================= */
+/*  SCREEN: Budget Optimization                                        */
+/* ================================================================= */
+
+function BudgetOptimizationScreen({
+  onBack,
+  categoryTotals,
+  profile
+}) {
+  const [optimized, setOptimized] = useState(false);
+  const suggestion = useMemo(() => {
+    return categoryTotals.map(c => {
+      const ideal = (GUIDELINE_PCT[c.category] || 0.05) * profile.monthlyIncome;
+      const suggested = c.amount > ideal ? Math.round(ideal * 1.05) : Math.round(c.amount);
+      return {
+        category: c.category,
+        current: c.amount,
+        suggested
+      };
+    }).filter(c => c.current > 0);
+  }, [categoryTotals, profile.monthlyIncome]);
+  const totalCurrent = suggestion.reduce((a, c) => a + c.current, 0);
+  const totalSuggested = suggestion.reduce((a, c) => a + c.suggested, 0);
+  const freedUp = Math.max(0, totalCurrent - totalSuggested);
+  const reduced = suggestion.filter(c => c.suggested < c.current).sort((a, b) => b.current - b.suggested - (a.current - a.suggested));
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Budget Optimization",
+    onBack: onBack
+  }), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      background: "linear-gradient(135deg,#1C2A4A,#152038)",
+      border: "1px solid rgba(127,184,255,0.2)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Sparkles",
+    size: 17,
+    color: "var(--mint)",
+    style: {
+      flexShrink: 0,
+      marginTop: 2
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      lineHeight: 1.5,
+      color: "var(--text-dim)"
+    }
+  }, "FINOVA looks at your recorded spending against healthy student budgeting guidelines and suggests small adjustments. This isn't professional financial advice — just a helpful nudge."))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead",
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Current vs Suggested")), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
+    }
+  }, suggestion.map(c => {
+    const max = Math.max(c.current, c.suggested, 1);
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.category
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 12.5,
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement(CategoryIcon, {
+      category: c.category,
+      box: 22,
+      size: 12
+    }), c.category), /*#__PURE__*/React.createElement("span", null, fmt(c.current), " → ", /*#__PURE__*/React.createElement("strong", {
+      style: {
+        color: c.suggested < c.current ? "var(--teal)" : "var(--text)"
+      }
+    }, fmt(c.suggested)))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 6,
+        borderRadius: 4,
+        background: "rgba(255,107,107,0.55)",
+        width: `${c.current / max * 100}%`
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 6,
+        borderRadius: 4,
+        background: "var(--teal)",
+        width: `${c.suggested / max * 100}%`
+      }
+    })));
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "fv-optimizebtn",
+    onClick: () => setOptimized(true)
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Sparkles",
+    size: 17
+  }), " Optimize My Budget"), optimized && /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginTop: 4,
+      marginBottom: 90,
+      background: "rgba(95,227,201,0.08)",
+      border: "1px solid rgba(95,227,201,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-label",
+    style: {
+      marginBottom: 6
+    }
+  }, "Why FINOVA suggests this"), reduced.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-dim)"
+    }
+  }, "Your spending already looks well balanced across categories — nice work!") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-dim)",
+      lineHeight: 1.6
+    }
+  }, reduced.slice(0, 3).map(c => /*#__PURE__*/React.createElement("div", {
+    key: c.category
+  }, "• Trimming ", /*#__PURE__*/React.createElement("strong", null, c.category), " by about ", fmt(c.current - c.suggested), " brings it closer to a healthy share of your income.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      color: "var(--teal)",
+      fontWeight: 600
+    }
+  }, "That could free up roughly ", fmt(freedUp), " for savings this month."))), !optimized && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 90
+    }
+  }));
+}
+
+/* ================================================================= */
+/*  SCREEN: Notifications                                              */
+/* ================================================================= */
+
+function NotificationsScreen({
+  onBack,
+  notifications
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Notifications",
+    onBack: onBack
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+      marginBottom: 90
+    }
+  }, notifications.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "fv-empty"
+  }, "You're all caught up."), notifications.map((n, i) => /*#__PURE__*/React.createElement(Card, {
+    key: i,
+    style: {
+      display: "flex",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-featureicon",
+    style: {
+      width: 34,
+      height: 34,
+      background: n.tone === "warn" ? "#FFB87022" : n.tone === "danger" ? "#FF6B6B22" : "#5FE3C922"
+    }
+  }, n.tone === "danger" ? /*#__PURE__*/React.createElement(Icon, {
+    name: "AlertTriangle",
+    size: 16,
+    color: "var(--danger)"
+  }) : n.tone === "warn" ? /*#__PURE__*/React.createElement(Icon, {
+    name: "AlertTriangle",
+    size: 16,
+    color: "var(--warn)"
+  }) : /*#__PURE__*/React.createElement(Icon, {
+    name: "Info",
+    size: 16,
+    color: "var(--teal)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      lineHeight: 1.45
+    }
+  }, n.text), /*#__PURE__*/React.createElement("div", {
+    className: "fv-txmeta",
+    style: {
+      marginTop: 3
+    }
+  }, n.time))))));
+}
+
+/* ================================================================= */
+/*  SCREEN: Profile / Settings                                         */
+/* ================================================================= */
+
+function ProfileScreen({
+  onBack,
+  profile,
+  setProfile,
+  budget,
+  savingsTarget
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(profile.name);
+  const [income, setIncome] = useState(String(profile.monthlyIncome));
+  const [target, setTarget] = useState(String(profile.savingsTarget));
+  const [notifOn, setNotifOn] = useState(true);
+  const save = () => {
+    setProfile(p => ({
+      ...p,
+      name: name.trim() || p.name,
+      monthlyIncome: Number(income) || p.monthlyIncome,
+      savingsTarget: Number(target) || p.savingsTarget
+    }));
+    setEditing(false);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-screen"
+  }, /*#__PURE__*/React.createElement(ScreenHeader, {
+    title: "Profile",
+    onBack: onBack,
+    right: /*#__PURE__*/React.createElement("button", {
+      className: "fv-iconbtn",
+      onClick: () => editing ? save() : setEditing(true)
+    }, editing ? /*#__PURE__*/React.createElement(Icon, {
+      name: "CheckCircle2",
+      size: 18,
+      color: "var(--teal)"
+    }) : /*#__PURE__*/React.createElement(Icon, {
+      name: "Pencil",
+      size: 15
+    }))
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 8,
+      margin: "6px 0 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-avatar"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "User",
+    size: 28,
+    color: "#0A1628"
+  })), editing ? /*#__PURE__*/React.createElement("input", {
+    className: "fv-nameinput",
+    value: name,
+    onChange: e => setName(e.target.value)
+  }) : /*#__PURE__*/React.createElement("div", {
+    className: "fv-h1",
+    style: {
+      marginBottom: 0
+    }
+  }, profile.name), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sub",
+    style: {
+      marginTop: 0
+    }
+  }, "Woxsen University · B.Tech")), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement(ProfileRow, {
+    label: "Monthly income/allowance",
+    editing: editing,
+    value: income,
+    onChange: setIncome,
+    display: fmt(profile.monthlyIncome)
+  }), /*#__PURE__*/React.createElement(ProfileRow, {
+    label: "Monthly budget",
+    editing: false,
+    display: fmt(budget)
+  }), /*#__PURE__*/React.createElement(ProfileRow, {
+    label: "Saving target",
+    editing: editing,
+    value: target,
+    onChange: setTarget,
+    display: fmt(profile.savingsTarget)
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-txmeta"
+  }, "Currency"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, "₹ INR"))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead",
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "Preferences")), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Bell",
+    size: 15
+  }), " Notification alerts"), /*#__PURE__*/React.createElement("button", {
+    className: "fv-toggle" + (notifOn ? " on" : ""),
+    onClick: () => setNotifOn(v => !v)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-togglethumb"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "ShieldCheck",
+    size: 15
+  }), " Expense preferences"), /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 15,
+    color: "var(--text-dim)"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fv-sectionhead",
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "About")), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginBottom: 90
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "Info",
+    size: 16,
+    color: "var(--teal)",
+    style: {
+      flexShrink: 0,
+      marginTop: 2
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-dim)",
+      lineHeight: 1.55
+    }
+  }, "FINOVA is a lightweight budgeting companion built for student life — no bank linking, no payments, just clear tracking and smart suggestions."))));
+}
+function ProfileRow({
+  label,
+  editing,
+  value,
+  onChange,
+  display
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "fv-txmeta"
+  }, label), editing && onChange ? /*#__PURE__*/React.createElement("div", {
+    className: "fv-inputwrap",
+    style: {
+      width: 120
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "IndianRupee",
+    size: 12
+  }), /*#__PURE__*/React.createElement("input", {
+    inputMode: "numeric",
+    value: value,
+    onChange: e => onChange(e.target.value.replace(/[^0-9]/g, ""))
+  })) : /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, display));
+}
+
+/* ================================================================= */
+/*  Add sheet (choose Expense / Income)                                */
+/* ================================================================= */
+
+function AddSheet({
+  onClose,
+  onPick
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-sheetbackdrop",
+    onClick: onClose
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-sheet",
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-sheethandle"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fv-h1",
+    style: {
+      fontSize: 16,
+      marginBottom: 14
+    }
+  }, "What would you like to add?"), /*#__PURE__*/React.createElement("button", {
+    className: "fv-sheetoption",
+    onClick: () => onPick("addExpense")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-featureicon",
+    style: {
+      background: "#FF6B6B22"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "ArrowUp",
+    size: 17,
+    color: "var(--danger)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13.5
+    }
+  }, "Add Expense"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-txmeta"
+  }, "Log money you spent")), /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 16,
+    color: "var(--text-dim)"
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "fv-sheetoption",
+    onClick: () => onPick("addIncome")
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-featureicon",
+    style: {
+      background: "#5FE3C922"
+    }
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "ArrowDown",
+    size: 17,
+    color: "var(--teal)"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      textAlign: "left"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 13.5
+    }
+  }, "Add Income"), /*#__PURE__*/React.createElement("div", {
+    className: "fv-txmeta"
+  }, "Log money you received")), /*#__PURE__*/React.createElement(Icon, {
+    name: "ChevronRight",
+    size: 16,
+    color: "var(--text-dim)"
+  }))));
+}
+
+/* ================================================================= */
+/*  ROOT APP                                                            */
+/* ================================================================= */
+
+function FinovaApp() {
+  const [onboarded, setOnboarded] = useState(false);
+  const [screen, setScreen] = useState("home");
+  const [history, setHistory] = useState([]);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [profile, setProfile] = useState({
+    name: "Diya",
+    monthlyIncome: 8000,
+    savingsTarget: 1500
+  });
+  const [expenses, setExpenses] = useState(SEED_EXPENSES);
+  const [incomes, setIncomes] = useState(SEED_INCOME);
+  const [goals, setGoals] = useState(SEED_GOALS);
+  const [budgetPlan, setBudgetPlan] = useState(SEED_BUDGET_PLAN);
+  const go = next => {
+    setHistory(h => [...h, screen]);
+    setScreen(next);
+  };
+  const goBack = () => {
+    setHistory(h => {
+      if (h.length === 0) {
+        setScreen("home");
+        return h;
+      }
+      const copy = [...h];
+      const prev = copy.pop();
+      setScreen(prev);
+      return copy;
+    });
+  };
+  const spent = useMemo(() => expenses.reduce((a, e) => a + e.amount, 0), [expenses]);
+  // Budget = monthly income/allowance set in Profile, plus any income logged beyond the seeded starting allowance
+  const seededAllowanceId = SEED_INCOME[0].id;
+  const nonAllowanceIncome = useMemo(() => incomes.filter(i => i.id !== seededAllowanceId).reduce((a, i) => a + i.amount, 0), [incomes]);
+  const effectiveBudget = profile.monthlyIncome + nonAllowanceIncome;
+  const remaining = effectiveBudget - spent;
+  const pctUsed = effectiveBudget > 0 ? spent / effectiveBudget * 100 : 0;
+  const categoryTotals = useMemo(() => CATEGORY_LIST.map(cat => ({
+    category: cat,
+    amount: expenses.filter(e => e.category === cat).reduce((a, e) => a + e.amount, 0)
+  })), [expenses]);
+  const transactions = useMemo(() => {
+    const exp = expenses.map(e => ({
+      ...e,
+      type: "expense"
+    }));
+    const inc = incomes.map(i => ({
+      ...i,
+      type: "income",
+      title: i.source
+    }));
+    return [...exp, ...inc].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [expenses, incomes]);
+  const insight = useMemo(() => {
+    const top = [...categoryTotals].sort((a, b) => b.amount - a.amount)[0];
+    if (!top || top.amount === 0) return "Start logging expenses and FINOVA will surface personalised tips here.";
+    const pct = Math.round(top.amount / (spent || 1) * 100);
+    return `${top.category} makes up about ${pct}% of your spending this month. A small cut here could speed up your saving goals.`;
+  }, [categoryTotals, spent]);
+  const notifications = useMemo(() => {
+    const list = [];
+    categoryTotals.forEach(c => {
+      const ideal = (GUIDELINE_PCT[c.category] || 0.05) * effectiveBudget;
+      if (ideal > 0 && c.amount >= ideal * 0.8 && c.amount < ideal) {
+        list.push({
+          text: `You've used ${Math.round(c.amount / ideal * 100)}% of your ${c.category} budget.`,
+          tone: "warn",
+          time: "Today"
+        });
+      }
+      if (ideal > 0 && c.amount > ideal) {
+        list.push({
+          text: `Your ${c.category} spending is higher than usual this month.`,
+          tone: "danger",
+          time: "Today"
+        });
+      }
+    });
+    goals.forEach(g => {
+      const pct = g.saved / g.target;
+      if (pct >= 0.7 && pct < 1) list.push({
+        text: `You're close to reaching your "${g.name}" saving goal!`,
+        tone: "teal",
+        time: "This week"
+      });
+    });
+    list.push({
+      text: `You have ${fmt(remaining)} remaining this month.`,
+      tone: "teal",
+      time: "Today"
+    });
+    return list;
+  }, [categoryTotals, effectiveBudget, goals, remaining]);
+  if (!onboarded) {
+    return /*#__PURE__*/React.createElement(PhoneFrame, null, /*#__PURE__*/React.createElement(OnboardingScreen, {
+      onFinish: data => {
+        setProfile(p => ({
+          ...p,
+          ...data
+        }));
+        setOnboarded(true);
+      }
+    }));
+  }
+  let body;
+  if (screen === "home") body = /*#__PURE__*/React.createElement(HomeScreen, {
+    profile: profile,
+    spent: spent,
+    remaining: remaining,
+    budget: effectiveBudget,
+    pctUsed: pctUsed,
+    categoryTotals: categoryTotals,
+    transactions: transactions,
+    goals: goals,
+    insight: insight,
+    go: go
+  });else if (screen === "addExpense") body = /*#__PURE__*/React.createElement(AddExpenseScreen, {
+    onBack: goBack,
+    onAdd: e => {
+      setExpenses(arr => [{
+        id: uid(),
+        ...e
+      }, ...arr]);
+      goBack();
+    }
+  });else if (screen === "addIncome") body = /*#__PURE__*/React.createElement(AddIncomeScreen, {
+    onBack: goBack,
+    onAdd: i => {
+      setIncomes(arr => [{
+        id: uid(),
+        ...i
+      }, ...arr]);
+      goBack();
+    }
+  });else if (screen === "budgetPlanner") body = /*#__PURE__*/React.createElement(BudgetPlannerScreen, {
+    onBack: goBack,
+    profile: profile,
+    setProfile: setProfile,
+    budgetPlan: budgetPlan,
+    setBudgetPlan: setBudgetPlan
+  });else if (screen === "analysis") body = /*#__PURE__*/React.createElement(SpendingAnalysisScreen, {
+    onBack: goBack,
+    expenses: expenses,
+    categoryTotals: categoryTotals,
+    spent: spent,
+    budget: effectiveBudget,
+    goOptimize: () => go("optimize")
+  });else if (screen === "transactions") body = /*#__PURE__*/React.createElement(TransactionsScreen, {
+    onBack: goBack,
+    transactions: transactions
+  });else if (screen === "goals") body = /*#__PURE__*/React.createElement(SavingGoalsScreen, {
+    onBack: goBack,
+    goals: goals,
+    setGoals: setGoals,
+    savingsTarget: profile.savingsTarget
+  });else if (screen === "optimize") body = /*#__PURE__*/React.createElement(BudgetOptimizationScreen, {
+    onBack: goBack,
+    categoryTotals: categoryTotals,
+    profile: profile
+  });else if (screen === "notifications") body = /*#__PURE__*/React.createElement(NotificationsScreen, {
+    onBack: goBack,
+    notifications: notifications
+  });else if (screen === "profile") body = /*#__PURE__*/React.createElement(ProfileScreen, {
+    onBack: goBack,
+    profile: profile,
+    setProfile: setProfile,
+    budget: effectiveBudget,
+    savingsTarget: profile.savingsTarget
+  });else body = null;
+  const navScreen = ["home", "analysis", "goals", "profile"].includes(screen) ? screen : "";
+  return /*#__PURE__*/React.createElement(PhoneFrame, {
+    footer: ["home", "analysis", "goals", "profile", "transactions", "notifications"].includes(screen) && /*#__PURE__*/React.createElement(BottomNav, {
+      screen: navScreen,
+      go: s => {
+        setHistory([]);
+        setScreen(s);
+      },
+      openAddSheet: () => setAddSheetOpen(true)
+    }),
+    overlay: addSheetOpen && /*#__PURE__*/React.createElement(AddSheet, {
+      onClose: () => setAddSheetOpen(false),
+      onPick: s => {
+        setAddSheetOpen(false);
+        go(s);
+      }
+    })
+  }, body);
+}
+function PhoneFrame({
+  children,
+  footer,
+  overlay
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fv-page"
+  }, /*#__PURE__*/React.createElement("style", null, FV_STYLES), /*#__PURE__*/React.createElement("div", {
+    className: "fv-phone"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fv-screenarea fv-screenarea-nostatus"
+  }, children), footer, overlay));
+}
+
+/* ================================================================= */
+/*  STYLES                                                              */
+/* ================================================================= */
+
+const FV_STYLES = `
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --navy: #0A1628;
+  --navy-card: #11213B;
+  --navy-elevated: #16294A;
+  --teal: #5FE3C9;
+  --mint: #7FE9D0;
+  --warn: #FFB870;
+  --danger: #FF6B6B;
+  --text: #F4F8FB;
+  --text-dim: #93A2BC;
+}
+
+* { box-sizing: border-box; }
+
+.fv-page {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+}
+
+.fv-phone {
+  width: 375px;
+  max-width: 100%;
+  height: 780px;
+  background: var(--navy);
+  border-radius: 40px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 0 0 6px #060D18;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.fv-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 26px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.fv-notch {
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 22px;
+  background: #060D18;
+  border-radius: 0 0 16px 16px;
+}
+
+.fv-screenarea {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  scrollbar-width: none;
+}
+.fv-screenarea::-webkit-scrollbar { display: none; }
+.fv-screenarea-nostatus { padding-top: 18px; }
+
+.fv-screen {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 18px 18px;
+  min-height: 100%;
+  gap: 14px;
+}
+
+.fv-onboard { justify-content: flex-start; padding-top: 24px; }
+
+.fv-brand { font-family: 'Outfit', sans-serif; font-size: 30px; font-weight: 800; letter-spacing: 1px; }
+.fv-tagline { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+.fv-featurerow {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  text-align: left;
+  color: var(--text-dim);
+}
+.fv-featureicon {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: #5FE3C922;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.fv-h1 { font-family: 'Outfit', sans-serif; font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+.fv-sub { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; margin-top: -2px; }
+
+.fv-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-dim); width: 100%; }
+.fv-field input, .fv-nameinput {
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px 13px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+}
+.fv-field input:focus { border-color: var(--teal); }
+.fv-nameinput { text-align: center; font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; }
+
+.fv-inputwrap {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 0 12px;
+  color: var(--text-dim);
+}
+.fv-inputwrap input {
+  background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 14px; padding: 12px 0; width: 100%; font-family: inherit;
+}
+.fv-inputwrap input[type="date"] { color-scheme: dark; }
+
+.fv-primarybtn {
+  background: linear-gradient(90deg, var(--teal), var(--mint));
+  color: #0A1628;
+  border: none;
+  border-radius: 16px;
+  padding: 15px;
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer;
+  width: 100%;
+}
+.fv-primarybtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.fv-optimizebtn {
+  background: var(--navy-elevated);
+  border: 1px solid rgba(95,227,201,0.4);
+  color: var(--teal);
+  border-radius: 16px;
+  padding: 14px;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer;
+  width: 100%;
+  font-family: 'Outfit', sans-serif;
+}
+
+.fv-iconbtn {
+  width: 34px; height: 34px; border-radius: 12px;
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.fv-screenhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.fv-screentitle { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; }
+
+.fv-card, .fv-card.fv-tap {
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
+  padding: 16px;
+}
+.fv-tap { cursor: pointer; }
+
+.fv-hometop { display: flex; align-items: center; justify-content: space-between; }
+.fv-greeting { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 15px; }
+.fv-month { font-size: 11px; color: var(--text-dim); }
+
+.fv-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.fv-bignum { font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 800; margin-top: 2px; }
+.fv-midnum { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; margin-top: 2px; }
+.fv-pctbadge {
+  background: rgba(95,227,201,0.15); color: var(--teal);
+  font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px;
+}
+.fv-statusline { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11.5px; color: var(--text-dim); }
+
+.fv-quickgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.fv-quickaction {
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 12px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.fv-quickicon { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+
+.fv-sectionhead { display: flex; align-items: center; justify-content: space-between; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 13.5px; margin-top: 4px; }
+.fv-linkbtn { background: none; border: none; color: var(--text-dim); font-size: 11px; display: flex; align-items: center; gap: 2px; cursor: pointer; font-family: inherit; }
+
+.fv-catgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 8px; }
+.fv-catcell { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+.fv-catname { font-size: 10.5px; color: var(--text-dim); }
+.fv-catamt { font-size: 12px; font-weight: 700; }
+
+.fv-txrow { display: flex; align-items: center; gap: 10px; padding: 8px 6px; }
+.fv-txtitle { font-size: 13px; font-weight: 600; }
+.fv-txmeta { font-size: 11px; color: var(--text-dim); }
+.fv-txamt { font-size: 13px; font-weight: 700; }
+
+.fv-goalsub { font-size: 11.5px; color: var(--text-dim); }
+
+.fv-bottomnav {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(17,33,59,0.92);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 10px 8px calc(env(safe-area-inset-bottom, 0px) + 10px);
+}
+.fv-navitem {
+  background: none; border: none; color: var(--text-dim);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-size: 9.5px; cursor: pointer; font-family: inherit;
+  padding: 2px 6px;
+}
+.fv-navitem.active { color: var(--teal); }
+.fv-addbtn {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal), var(--mint));
+  border: 4px solid var(--navy);
+  display: flex; align-items: center; justify-content: center;
+  margin-top: -26px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(95,227,201,0.4);
+}
+
+.fv-chiprow { display: flex; gap: 8px; flex-wrap: wrap; }
+.fv-chip {
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 8px 13px;
+  font-size: 11.5px;
+  display: flex; align-items: center; gap: 5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.fv-chip.active { background: rgba(95,227,201,0.15); border-color: var(--teal); color: var(--teal); }
+
+.fv-iconpicker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.fv-iconpick {
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 10px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer;
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+.fv-iconpick.active { font-weight: 700; color: var(--text); }
+
+.fv-amountentry {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-family: 'Outfit', sans-serif; font-size: 40px; font-weight: 800;
+  padding: 18px 0 6px;
+  color: var(--text);
+}
+.fv-amountentry input {
+  background: none; border: none; outline: none; color: inherit;
+  font-family: inherit; font-size: inherit; font-weight: inherit;
+  width: 160px; text-align: left;
+}
+
+.fv-statgrid { display: flex; gap: 10px; }
+
+.fv-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal), var(--mint));
+  display: flex; align-items: center; justify-content: center;
+}
+
+.fv-toggle {
+  width: 40px; height: 22px; border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: none; position: relative; cursor: pointer;
+  transition: background .2s;
+}
+.fv-toggle.on { background: var(--teal); }
+.fv-togglethumb {
+  position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #0A1628;
+  transition: left .2s;
+}
+.fv-toggle.on .fv-togglethumb { left: 20px; background: #fff; }
+
+.fv-smallbtn {
+  flex: 1;
+  background: rgba(95,227,201,0.1);
+  border: 1px solid rgba(95,227,201,0.3);
+  color: var(--teal);
+  border-radius: 10px;
+  padding: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.fv-empty { text-align: center; color: var(--text-dim); font-size: 12.5px; padding: 20px 0; }
+
+.fv-sheetbackdrop {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: flex-end; z-index: 20;
+}
+.fv-sheet {
+  width: 100%; background: var(--navy-elevated);
+  border-radius: 24px 24px 0 0;
+  padding: 12px 18px 26px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.fv-sheethandle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 4px; margin: 4px auto 8px; }
+.fv-sheetoption {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--navy-card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+}
+
+@media (max-width: 400px) {
+  .fv-phone { width: 100%; height: 100vh; border-radius: 0; border: none; }
+}
+`;
+const rootEl = document.getElementById("root");
+const root = ReactDOM.createRoot(rootEl);
+root.render(/*#__PURE__*/React.createElement(FinovaApp, null));</script>
+</body>
+</html>
